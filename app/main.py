@@ -31,6 +31,7 @@ async def get_user_by_id(user_id: int):
 
     # Return the user
     return user
+
 @app.get("/products", response_model=List[dict])
 async def get_products():
     return products
