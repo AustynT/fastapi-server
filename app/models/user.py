@@ -10,5 +10,5 @@ class User(BaseModel):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     
-    services = relationship("Service", back_populates="user")
-    prodocts = relationship("Product", back_populates="product")
+"""     services = relationship("Service", back_populates="user")
+    prodocts = relationship("Product", back_populates="product") """
