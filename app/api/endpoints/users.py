@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
-from app.db.utils import add_and_commit, find_and_update, get_instance_by_id, delete_and_commit
+from app.utils.database_utils import add_and_commit, find_and_update, get_instance_by_id, delete_and_commit
 from app.models.user import User
 
 router = APIRouter()
