@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from app.db.database import get_db
-from app.utils.database_utils import add_and_commit, get_instance_by_id
+from app.utils.database_utils import add_and_commit
 from app.models.user import User
-from app.core.security import hash_password, verify_password, create_access_token
+from app.utils.security_utils import hash_password, verify_password, create_access_token
 from app.core.config import config
 
 router = APIRouter()
