@@ -1,53 +1,57 @@
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from jose import jwt, JWTError
 from fastapi import HTTPException
-from app.models.token import Token
-from app.utils.database_utils import add_and_commit, get_instance_by_id, commit_and_refresh
+from app.core.config import config
 
-def create_token(db: Session, token_str: str, user_id: int, expires_delta: timedelta) -> Token:
+def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     """
-    Create and store a new token in the database.
+    Create a JWT access token.
 
     Args:
-        db (Session): SQLAlchemy database session.
-        token_str (str): The JWT string.
-        user_id (int): The ID of the user associated with the token.
-        expires_delta (timedelta): Expiration duration for the token.
+        data (dict): Payload to include in the token (e.g., user information).
+        expires_delta (timedelta, optional): Expiration time for the token. Defaults to None.
 
     Returns:
-        Token: The created token instance.
+        str: Encoded JWT token.
     """
-    expires_at = datetime.utcnow() + expires_delta
-    token = Token(token=token_str, user_id=user_id, expires_at=expires_at)
-    return add_and_commit(db, token)
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, config.JWT_SECRET, algorithm=config.ALGORITHM)
+    return encoded_jwt
 
-def blacklist_token(db: Session, token_str: str):
+
+def decode_access_token(token: str) -> dict:
     """
-    Mark a token as blacklisted.
+    Decode a JWT token.
 
     Args:
-        db (Session): SQLAlchemy database session.
-        token_str (str): The token string to blacklist.
+        token (str): JWT token to decode.
 
     Returns:
-        Token: The blacklisted token instance.
+        dict: Decoded payload or raises an exception if invalid.
     """
-    token = db.query(Token).filter(Token.token == token_str).first()
-    if not token:
-        raise HTTPException(status_code=404, detail="Token not found")
-    token.is_blacklisted = True
-    return commit_and_refresh(db, token)
+    try:
+        payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-def is_token_blacklisted(db: Session, token_str: str) -> bool:
+
+def validate_token(token: str) -> dict:
     """
-    Check if a token is blacklisted.
+    Validate a JWT token and ensure it has not expired.
 
     Args:
-        db (Session): SQLAlchemy database session.
-        token_str (str): The token string to check.
+        token (str): JWT token to validate.
 
     Returns:
-        bool: True if the token is blacklisted, False otherwise.
+        dict: Decoded payload if valid.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
     """
-    token = db.query(Token).filter(Token.token == token_str, Token.is_blacklisted == True).first()
-    return token is not None
+    payload = decode_access_token(token)
+    if "exp" in payload and datetime.now(timezone.utc) > datetime.fromtimestamp(payload["exp"], tz=timezone.utc):
+        raise HTTPException(status_code=401, detail="Token has expired")
+    return payload
