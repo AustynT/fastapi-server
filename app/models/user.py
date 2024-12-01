@@ -12,6 +12,7 @@ class User(BaseModel):
     last_name = Column(String, nullable=False)
     
     tokens = relationship("Token", back_populates="user")
+    role = relationship("Role", back_populates="users")
 
     
 """     services = relationship("Service", back_populates="user")
