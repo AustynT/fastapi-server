@@ -3,13 +3,31 @@ from sqlalchemy.ext.declarative import declared_attr
 from app.db.database import Base
 from datetime import datetime, timezone
 
+
 class BaseModel(Base):
-    __abstract__ = True  # Mark this class as abstract (no table will be created for it)
+    __abstract__ = True  # This class is abstract and will not create its own table
 
     @declared_attr
     def created_at(cls):
-        return Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+        """
+        Timestamp for when the record is created.
+        Defaults to the current UTC time.
+        """
+        return Column(
+            DateTime, 
+            default=lambda: datetime.now(timezone.utc), 
+            nullable=False
+        )
 
     @declared_attr
     def updated_at(cls):
-        return Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+        """
+        Timestamp for when the record is last updated.
+        Automatically updated to the current UTC time on record updates.
+        """
+        return Column(
+            DateTime,
+            default=lambda: datetime.now(timezone.utc),
+            onupdate=lambda: datetime.now(timezone.utc),
+            nullable=False
+        )
