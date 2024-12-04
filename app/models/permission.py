@@ -6,8 +6,8 @@ class Permission(BaseModel):
     __tablename__ = "permissions"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)  # Permission name (e.g., "view_users")
-    description = Column(String, nullable=True)  # Optional description of the permission
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
 
     # Relationship to RolePermission
-    roles = relationship("RolePermission", back_populates="permission")
+    role_permissions = relationship("RolePermission", back_populates="permission")

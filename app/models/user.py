@@ -12,7 +12,7 @@ class User(BaseModel):
     last_name = Column(String, nullable=False)
     
     tokens = relationship("Token", back_populates="user")
-    role = relationship("Role", back_populates="users")
+    role_permissions = relationship("RolePermission", back_populates="user")
 
     
 """     services = relationship("Service", back_populates="user")

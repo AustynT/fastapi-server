@@ -6,9 +6,11 @@ class RolePermission(BaseModel):
     __tablename__ = "role_permissions"
 
     id = Column(Integer, primary_key=True, index=True)
-    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)  # Foreign key to Role
-    permission_id = Column(Integer, ForeignKey("permissions.id"), nullable=False)  # Foreign key to Permission
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # ForeignKey to User
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)  # ForeignKey to Role
+    permission_id = Column(Integer, ForeignKey("permissions.id"), nullable=True)  # Optional FK to Permission
 
     # Relationships
-    role = relationship("Role", back_populates="permissions")
-    permission = relationship("Permission", back_populates="roles")
+    user = relationship("User", back_populates="role_permissions")
+    role = relationship("Role", back_populates="role_permissions")
+    permission = relationship("Permission", back_populates="role_permissions")
