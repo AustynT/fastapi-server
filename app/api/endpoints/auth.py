@@ -61,7 +61,7 @@ def register_user(user_data: RegisterRequest, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/login")
+@router.post("/login", response_model=RegisterResponse)
 def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
     Login a user and return an access token.
@@ -74,10 +74,25 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
             detail="Invalid email or password",
         )
     
-    # Create a JWT token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Create and save the token in the database
+    token = Token.create(
+        user_id=user.id,
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        payload={"sub": user.email},
+        db=db,
+    )
+
+    # Return user data and token
+    return RegisterResponse(
+        id=user.id,
+        email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        created_at=user.created_at.isoformat(),
+        updated_at=user.updated_at.isoformat(),
+        access_token=token.token,  # Use the token saved in the database
+        token_type="bearer",
+    )
 
 
 @router.post("/logout")
