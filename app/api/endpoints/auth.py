@@ -8,7 +8,7 @@ from app.models.user import User
 from app.db.database import get_db
 from app.utils.security_utils import hash_password, verify_password
 from app.core.config import config
-from app.utils.token_utils import create_access_token
+
 
 router = APIRouter()
 
