@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from app.models.base_model import BaseModel
 from sqlalchemy.orm import relationship
 
@@ -11,6 +11,7 @@ class JobHistory(BaseModel):
     user_id = Column(Integer, ForeignKey("users.id"))
     location = Column(String, nullable=False)
     discription = Column(String, nullable=False)
+    is_active = Column(Boolean, nullable=False)
     start_date = Column(
                     DateTime,
                     default=lambda: datetime.now(timezone.utc),
@@ -18,8 +19,7 @@ class JobHistory(BaseModel):
                 )
     end_date = Column(
                     DateTime,
-                    default=lambda: datetime.now(timezone.utc),
-                    nullable=False
+                    nullable=True
                 )
     
 
