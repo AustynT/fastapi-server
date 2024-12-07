@@ -2,34 +2,36 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
+from app.db.dependency import get_current_user
 from app.utils.database_utils import find_and_update, get_instance_by_id, delete_and_commit
 from app.models.user import User
+from app.schemas.users import UserResponse
 
 router = APIRouter()
 
-@router.get("/users", response_model=List[dict])
-async def get_users(db: Session = Depends(get_db)):
+@router.get("/users", response_model=List[UserResponse])
+async def get_users(
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+    ):
     """
     Get a list of all users.
     """
     return db.query(User).all()
 
-@router.put("/users/{user_id}", response_model=dict)
-async def update_user(user_id: int, updated_data: dict, db: Session = Depends(get_db)):
-    """
-    Update an existing user by ID.
-    """
-    return find_and_update(db, User, user_id, updated_data)
 
-@router.get("/users/{user_id}", response_model=dict)
+@router.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     """
     Get a user by ID.
     """
     return get_instance_by_id(db, User, user_id)
 
-@router.delete("/users/{user_id}", response_model=dict)
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
+@router.delete("/users/{user_id}")
+async def delete_user(
+        user_id: int, 
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)):
     """
     Delete a user by ID.
     """
