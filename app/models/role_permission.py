@@ -12,5 +12,5 @@ class RolePermission(BaseModel):
 
     # Relationships
     user = relationship("User", back_populates="role_permissions")
-    role = relationship("Role", back_populates="role_permissions")
-    permission = relationship("Permission", back_populates="role_permissions")
+    role = relationship("Role", back_populates="roles")
+    permission = relationship("Permission", back_populates="permissions")
