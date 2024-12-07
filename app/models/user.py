@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String
 from app.models.base_model import BaseModel
 from sqlalchemy.orm import relationship
 
@@ -13,6 +13,7 @@ class User(BaseModel):
     
     tokens = relationship("Token", back_populates="user")
     role_permissions = relationship("RolePermission", back_populates="user")
+    job_histories = relationship("JobHistory", back_populates="user")
 
     
 """     services = relationship("Service", back_populates="user")

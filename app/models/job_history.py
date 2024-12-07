@@ -23,4 +23,4 @@ class JobHistory(BaseModel):
                 )
     
 
-    user = relationship("User", back_populates="users") 
+    user = relationship("User", back_populates="job_histories") 
