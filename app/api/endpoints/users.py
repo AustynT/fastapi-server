@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.db.dependency import get_current_user
-from app.utils.database_utils import find_and_update, get_instance_by_id, delete_and_commit
+from app.utils.database_utils import get_instance_by_id, delete_and_commit
 from app.models.user import User
 from app.schemas.users import UserResponse
 
