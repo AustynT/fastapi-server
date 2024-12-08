@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from datetime import timedelta
 from app.models.user import User
 from app.schemas.register import RegisterRequest, RegisterResponse
 from app.utils.security_utils import hash_password, verify_password
