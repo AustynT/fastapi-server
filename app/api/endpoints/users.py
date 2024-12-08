@@ -21,7 +21,10 @@ async def get_users(
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
+async def get_user(
+        user_id: int, 
+        db: Session = Depends(get_db)
+    ):
     """
     Get a user by ID.
     """
