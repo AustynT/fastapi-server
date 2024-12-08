@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from app.models.base_model import BaseModel
 from sqlalchemy.orm import relationship
 
@@ -10,6 +10,7 @@ class User(BaseModel):
     hashed_password = Column(String, nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=False, index=True)
     
     tokens = relationship("Token", back_populates="user")
     role_permissions = relationship("RolePermission", back_populates="user")
