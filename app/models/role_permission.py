@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.models.base_model import BaseModel
 
@@ -14,3 +14,8 @@ class RolePermission(BaseModel):
     user = relationship("User", back_populates="role_permissions")
     role = relationship("Role", back_populates="role_permissions")
     permission = relationship("Permission", back_populates="role_permissions")
+
+    __table_args__ = (
+        # Ensure each user-role-permission combination is unique
+        UniqueConstraint("user_id", "role_id", "permission_id", name="uq_role_permission"),
+    )
