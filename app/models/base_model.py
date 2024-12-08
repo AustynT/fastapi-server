@@ -31,3 +31,12 @@ class BaseModel(Base):
             onupdate=lambda: datetime.now(timezone.utc),
             nullable=False
         )
+
+
+    def __repr__(self):
+        column_values = {
+            column.name: getattr(self, column)
+            for column in self.__table__.columns
+        }
+        
+        return f"<{self.__class__.__name__} {column_values}"
