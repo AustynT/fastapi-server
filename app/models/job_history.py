@@ -10,7 +10,7 @@ class JobHistory(BaseModel):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     location = Column(String, nullable=False)
-    discription = Column(String, nullable=False)
+    description = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False)
     start_date = Column(
                     DateTime,
