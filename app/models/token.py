@@ -11,7 +11,7 @@ class Token(BaseModel):
     token = Column(String, nullable=False, unique=True)  # The JWT token
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Link to the user
     expires_at = Column(DateTime, nullable=False)  # Expiration time for the token
-    is_blacklisted = Column(Boolean, default=False)  # Whether the token is invalidated
+    is_blacklisted = Column(Boolean, nullable=False, default=False)  # Whether the token is invalidated
 
     # Relationship to User model
     user = relationship("User", back_populates="tokens")
