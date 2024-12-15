@@ -3,13 +3,14 @@ from jose import jwt, JWTError
 from fastapi import HTTPException
 from app.core.config import config
 
+
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     """
     Create a JWT access token.
 
     Args:
         data (dict): Payload to include in the token (e.g., user information).
-        expires_delta (timedelta, optional): Expiration time for the token. Defaults to None.
+        expires_delta (timedelta, optional): Expiration time for the token. Defaults to the config value.
 
     Returns:
         str: Encoded JWT token.
@@ -29,13 +30,16 @@ def decode_access_token(token: str) -> dict:
         token (str): JWT token to decode.
 
     Returns:
-        dict: Decoded payload or raises an exception if invalid.
+        dict: Decoded payload.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
     """
     try:
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.ALGORITHM])
         return payload
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from e
 
 
 def validate_token(token: str) -> dict:
@@ -52,6 +56,11 @@ def validate_token(token: str) -> dict:
         HTTPException: If the token is invalid or expired.
     """
     payload = decode_access_token(token)
-    if "exp" in payload and datetime.now(timezone.utc) > datetime.fromtimestamp(payload["exp"], tz=timezone.utc):
-        raise HTTPException(status_code=401, detail="Token has expired")
+
+    # Check the expiration timestamp
+    if "exp" in payload:
+        exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        if datetime.now(timezone.utc) > exp:
+            raise HTTPException(status_code=401, detail="Token has expired")
+
     return payload

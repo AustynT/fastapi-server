@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.token import Token
-from app.utils.token_utils import create_access_token, decode_access_token, validate_token
+from app.utils.token_utils import create_access_token, validate_token
 from app.core.config import config
 
 
@@ -31,7 +31,7 @@ class TokenService:
         access_expires_at = datetime.now(timezone.utc) + timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES)
         refresh_expires_at = datetime.now(timezone.utc) + timedelta(days=TokenService.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        # Generate tokens
+        # Generate tokens using token_utils
         access_token = create_access_token(payload, timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES))
         refresh_token = create_access_token({"sub": user_id}, timedelta(days=TokenService.REFRESH_TOKEN_EXPIRE_DAYS))
 
@@ -64,6 +64,10 @@ class TokenService:
         Raises:
             HTTPException: If the token is invalid, expired, or blacklisted.
         """
+        # Validate the token's signature and expiration
+        payload = validate_token(token_str)
+
+        # Check the token's status in the database
         token = db.query(Token).filter(Token.token == token_str).first()
 
         if not token:
@@ -76,7 +80,7 @@ class TokenService:
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is blacklisted"
             )
 
-        return validate_token(token_str)
+        return payload
 
     @staticmethod
     def blacklist_token(token_str: str, db: Session) -> None:
@@ -112,6 +116,7 @@ class TokenService:
         Raises:
             HTTPException: If the refresh token is invalid, expired, or blacklisted.
         """
+        # Check the refresh token in the database
         token = db.query(Token).filter(Token.refresh_token == refresh_token_str).first()
 
         if not token or token.is_blacklisted:
