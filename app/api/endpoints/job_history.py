@@ -6,6 +6,8 @@ from app.db.dependency import get_current_user
 from app.models.job_history import JobHistory
 from app.models.user import User
 from app.schemas.job_history import JobHistoryResponse, JobHistoryRequest
+
+
 router = APIRouter()
 
 @router.get("/job-history", response_model=List[JobHistoryResponse])
