@@ -8,9 +8,11 @@ class Token(BaseModel):
     __tablename__ = "tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    token = Column(String, nullable=False, unique=True)  # The JWT token
+    token = Column(String, nullable=False, unique=True)  # The JWT access token
+    refresh_token = Column(String, nullable=False, unique=True)  # The refresh token
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Link to the user
-    expires_at = Column(DateTime, nullable=False)  # Expiration time for the token
+    expires_at = Column(DateTime, nullable=False)  # Expiration time for the access token
+    refresh_expires_at = Column(DateTime, nullable=False)  # Expiration time for the refresh token
     is_blacklisted = Column(Boolean, nullable=False, default=False)  # Whether the token is invalidated
 
     # Relationship to User model
@@ -19,11 +21,11 @@ class Token(BaseModel):
     @classmethod
     def delete_expired_tokens(cls, db: Session) -> None:
         """
-        Delete all expired tokens from the database.
+        Delete all expired tokens (both access and refresh) from the database.
 
         Args:
             db (Session): The database session.
         """
         now = datetime.now(timezone.utc)
-        db.query(cls).filter(cls.expires_at < now).delete()
+        db.query(cls).filter((cls.expires_at < now) | (cls.refresh_expires_at < now)).delete()
         db.commit()
