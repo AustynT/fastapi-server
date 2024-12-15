@@ -8,10 +8,15 @@ from app.models.user import User
 from app.schemas.job_history import JobHistoryResponse
 router = APIRouter()
 
-@router.get("/job-history/{user_id}", response_model=JobHistoryResponse)
+@router.get("/job-history/{user_id}", response_model=List[JobHistoryResponse])
 async def get_user_jobs(
         user_id: int,
         db: Session = Depends(get_db), 
         current_user: User = Depends(get_current_user)):
     
-    pass
+    user_jobs = db.query(JobHistory).filter(JobHistory.user_id == user_id).all()
+    
+    if not user_jobs:
+        raise HTTPException(status_code=404, detail="No Job History Found for this user")
+    
+    return user_jobs
