@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models.user import User
 from app.schemas.register import RegisterRequest, RegisterResponse
+from app.schemas.token import TokenResponse
 from app.utils.security_utils import hash_password, verify_password
 from app.services.token_service import TokenService
 
@@ -47,8 +48,11 @@ class UserService:
             last_name=new_user.last_name,
             created_at=new_user.created_at.isoformat(),
             updated_at=new_user.updated_at.isoformat(),
-            access_token=token.token,
-            token_type="bearer",
+            token=TokenResponse(
+                access_token=token.token,
+                refresh_token=token.refresh_token,
+                token_type="bearer",
+            ),
         )
 
     @staticmethod
@@ -79,6 +83,9 @@ class UserService:
             last_name=user.last_name,
             created_at=user.created_at.isoformat(),
             updated_at=user.updated_at.isoformat(),
-            access_token=token.token,
-            token_type="bearer",
+            token=TokenResponse(
+                access_token=token.token,
+                refresh_token=token.refresh_token,
+                token_type="bearer",
+            ),
         )
