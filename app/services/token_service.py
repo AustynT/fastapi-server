@@ -7,38 +7,84 @@ from app.core.config import config
 
 
 class TokenService:
-    ACCESS_TOKEN_EXPIRE_MINUTES = config.ACCESS_TOKEN_EXPIRE_MINUTES
-    
     @staticmethod
     def create_token(user_id: int, payload: dict, db: Session) -> Token:
         """
-        Create a new token, save it in the database, and return it.
+        Create both access and refresh tokens, save them in the database, and return the access token.
 
         Args:
             user_id (int): The ID of the user the token is for.
-            payload (dict): The payload to encode in the token.
+            payload (dict): The payload to encode in the access token.
             db (Session): The database session.
 
         Returns:
             Token: The created token instance.
         """
-        # Generate the JWT
-        expires_delta = timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES)
-        token_str = create_access_token(data=payload, expires_delta=expires_delta)
-        
-        # Calculate expiration time
-        expires_at = datetime.now(timezone.utc) + expires_delta
-        
-        # Save the token to the database
+        # Generate expiration times
+        access_expires_delta = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_expires_delta = timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
+
+        # Generate tokens
+        access_token = create_access_token(payload, expires_delta=access_expires_delta)
+        refresh_token = create_access_token({"sub": user_id}, expires_delta=refresh_expires_delta)
+
+        # Save tokens to the database
         token = Token(
-                token=token_str, 
-                user_id=user_id, 
-                expires_at=expires_at
-            )
+            token=access_token,
+            refresh_token=refresh_token,
+            user_id=user_id,
+            expires_at=datetime.now(timezone.utc) + access_expires_delta,
+            refresh_expires_at=datetime.now(timezone.utc) + refresh_expires_delta,
+        )
         db.add(token)
         db.commit()
         db.refresh(token)
+
         return token
+
+    @staticmethod
+    def refresh_access_token(refresh_token: str, db: Session) -> str:
+        """
+        Refresh an access token using a valid refresh token.
+
+        Args:
+            refresh_token (str): The refresh token to validate.
+            db (Session): The database session.
+
+        Returns:
+            str: The new access token.
+
+        Raises:
+            HTTPException: If the refresh token is invalid, expired, or blacklisted.
+        """
+        # Fetch the token record from the database
+        token = db.query(Token).filter(Token.refresh_token == refresh_token).first()
+
+        # Validate the refresh token
+        if not token or token.is_blacklisted:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or blacklisted refresh token.",
+            )
+        if token.refresh_expires_at < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired.",
+            )
+
+        # Generate a new access token
+        new_access_expires = timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES)
+        new_access_token = create_access_token(
+            data={"sub": token.user_id},
+            expires_delta=new_access_expires,
+        )
+
+        # Update the token in the database
+        token.token = new_access_token
+        token.expires_at = datetime.now(timezone.utc) + new_access_expires
+        db.commit()
+
+        return new_access_token
     
     @staticmethod
     def blacklist_token(token_str: str, db: Session) -> None:
