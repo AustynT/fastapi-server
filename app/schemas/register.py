@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
+from app.schemas.token import TokenResponse
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -7,11 +8,13 @@ class RegisterRequest(BaseModel):
     last_name: str = Field(..., max_length=50)
 
 class RegisterResponse(BaseModel):
+    """
+    Schema for user registration responses.
+    """
     id: int
     email: EmailStr
     first_name: str
     last_name: str
     created_at: str
     updated_at: str
-    access_token: str  # Include the token in the response
-    token_type: str
+    token: TokenResponse
