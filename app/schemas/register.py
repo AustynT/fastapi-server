@@ -1,20 +1,59 @@
 from pydantic import BaseModel, EmailStr, Field
+from datetime import datetime
 from app.schemas.token import TokenResponse
 
+
 class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(..., min_length=6, max_length=50)
-    first_name: str = Field(..., max_length=50)
-    last_name: str = Field(..., max_length=50)
+    """
+    Schema for user registration requests.
+    """
+    email: EmailStr = Field(..., description="The email address of the user.")
+    password: str = Field(
+        ...,
+        min_length=6,
+        max_length=50,
+        description="Password with a minimum length of 6 and a maximum of 50 characters.",
+    )
+    first_name: str = Field(..., max_length=50, description="The user's first name.")
+    last_name: str = Field(..., max_length=50, description="The user's last name.")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "password": "securepassword",
+                "first_name": "John",
+                "last_name": "Doe",
+            }
+        }
+
 
 class RegisterResponse(BaseModel):
     """
     Schema for user registration responses.
     """
-    id: int
-    email: EmailStr
-    first_name: str
-    last_name: str
-    created_at: str
-    updated_at: str
-    token: TokenResponse
+    id: int = Field(..., description="The unique identifier of the user.")
+    email: EmailStr = Field(..., description="The email address of the user.")
+    first_name: str = Field(..., description="The user's first name.")
+    last_name: str = Field(..., description="The user's last name.")
+    created_at: datetime = Field(..., description="The timestamp when the user was created.")
+    updated_at: datetime = Field(..., description="The timestamp when the user was last updated.")
+    token: TokenResponse = Field(..., description="The access and refresh token details.")
+
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "email": "user@example.com",
+                "first_name": "John",
+                "last_name": "Doe",
+                "created_at": "2023-12-01T00:00:00Z",
+                "updated_at": "2023-12-01T00:00:00Z",
+                "token": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "bearer",
+                },
+            }
+        }
