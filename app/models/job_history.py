@@ -8,27 +8,18 @@ class JobHistory(BaseModel):
     __tablename__ = "job_histories"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     location = Column(String, nullable=False)
     description = Column(String, nullable=False)
-    is_active = Column(Boolean, nullable=False)
-    start_date = Column(
-                    DateTime,
-                    default=lambda: datetime.now(timezone.utc),
-                    nullable=False
-                )
-    end_date = Column(
-                    DateTime,
-                    nullable=True
-                ) 
+    is_active = Column(Boolean, nullable=False, default=True, index=True)
+    start_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    end_date = Column(DateTime, nullable=True)
     user = relationship("User", back_populates="job_histories")
     
     @validates("start_date")
     def validate_start_date(self, key, value):
-
         if value > datetime.now(timezone.utc):
-            raise ValueError("start can't be in the future")
-        
+            raise ValueError("start_date cannot be in the future")
         return value
     
     @validates("end_date")
@@ -39,7 +30,13 @@ class JobHistory(BaseModel):
     
     @validates("location")
     def validate_location(self, key, value):
-
         if not value.strip():
             raise ValueError("Location cannot be empty or whitespaces")
         return value
+
+    @property
+    def is_current(self):
+        """
+        Determine if the job is still active based on end_date.
+        """
+        return not self.end_date or self.end_date > datetime.now(timezone.utc)
