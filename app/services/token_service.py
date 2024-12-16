@@ -1,41 +1,25 @@
 from datetime import datetime, timedelta, timezone
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
 from app.models.token import Token
 from app.utils.token_utils import create_access_token, validate_token
 from app.core.config import config
+from app.services.base_service import BaseService
+from fastapi import HTTPException, status
 
 
-class TokenService:
-    """
-    Service to handle token-related operations, including creation, validation, blacklisting, 
-    and refreshing tokens.
-    """
+class TokenService(BaseService):
     ACCESS_TOKEN_EXPIRE_MINUTES = config.ACCESS_TOKEN_EXPIRE_MINUTES
     REFRESH_TOKEN_EXPIRE_DAYS = config.REFRESH_TOKEN_EXPIRE_DAYS
 
-    @staticmethod
-    def create_token(user_id: int, payload: dict, db: Session) -> Token:
+    def create_token(self, user_id: int, payload: dict) -> Token:
         """
         Create an access and refresh token, save them in the database, and return the tokens.
-
-        Args:
-            user_id (int): The ID of the user the token is for.
-            payload (dict): The payload to encode in the access token.
-            db (Session): The database session.
-
-        Returns:
-            Token: The created token instance.
         """
-        # Generate expiration times
-        access_expires_at = datetime.now(timezone.utc) + timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES)
-        refresh_expires_at = datetime.now(timezone.utc) + timedelta(days=TokenService.REFRESH_TOKEN_EXPIRE_DAYS)
+        access_expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_expires_at = datetime.now(timezone.utc) + timedelta(days=self.REFRESH_TOKEN_EXPIRE_DAYS)
 
-        # Generate tokens using token_utils
-        access_token = create_access_token(payload, timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES))
-        refresh_token = create_access_token({"sub": user_id}, timedelta(days=TokenService.REFRESH_TOKEN_EXPIRE_DAYS))
+        access_token = create_access_token(payload, timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES))
+        refresh_token = create_access_token({"sub": user_id}, timedelta(days=self.REFRESH_TOKEN_EXPIRE_DAYS))
 
-        # Save tokens to the database
         token = Token(
             token=access_token,
             refresh_token=refresh_token,
@@ -43,37 +27,15 @@ class TokenService:
             expires_at=access_expires_at,
             refresh_expires_at=refresh_expires_at,
         )
-        db.add(token)
-        db.commit()
-        db.refresh(token)
 
-        return token
+        return self._database.add_and_commit(token)
 
-    @staticmethod
-    def validate_access_token(token_str: str, db: Session) -> dict:
+    def validate_access_token(self, token_str: str) -> dict:
         """
         Validate an access token by checking its blacklist status and decoding it.
-
-        Args:
-            token_str (str): The access token to validate.
-            db (Session): The database session.
-
-        Returns:
-            dict: The decoded payload if the token is valid.
-
-        Raises:
-            HTTPException: If the token is invalid, expired, or blacklisted.
         """
-        # Validate the token's signature and expiration
         payload = validate_token(token_str)
-
-        # Check the token's status in the database
-        token = db.query(Token).filter(Token.token == token_str).first()
-
-        if not token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token not found"
-            )
+        token = self._database.get_instance_by_id(Token, token_str)
 
         if token.is_blacklisted:
             raise HTTPException(
@@ -82,44 +44,21 @@ class TokenService:
 
         return payload
 
-    @staticmethod
-    def blacklist_token(token_str: str, db: Session) -> None:
+    def blacklist_token(self, token_str: str) -> None:
         """
         Blacklist an access token, preventing further use.
-
-        Args:
-            token_str (str): The access token to blacklist.
-            db (Session): The database session.
         """
-        token = db.query(Token).filter(Token.token == token_str).first()
-
-        if not token:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Token not found"
-            )
-
+        token = self._database.get_instance_by_id(Token, token_str)
         token.is_blacklisted = True
-        db.commit()
+        self._database.commit_and_refresh(token)
 
-    @staticmethod
-    def refresh_access_token(refresh_token_str: str, db: Session) -> str:
+    def refresh_access_token(self, refresh_token_str: str) -> str:
         """
         Refresh an access token using a valid refresh token.
-
-        Args:
-            refresh_token_str (str): The refresh token to validate.
-            db (Session): The database session.
-
-        Returns:
-            str: The new access token.
-
-        Raises:
-            HTTPException: If the refresh token is invalid, expired, or blacklisted.
         """
-        # Check the refresh token in the database
-        token = db.query(Token).filter(Token.refresh_token == refresh_token_str).first()
+        token = self._database.get_instance_by_id(Token, refresh_token_str)
 
-        if not token or token.is_blacklisted:
+        if token.is_blacklisted:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or blacklisted refresh token.",
@@ -131,29 +70,24 @@ class TokenService:
                 detail="Refresh token has expired.",
             )
 
-        # Generate a new access token
         new_access_token = create_access_token(
             {"sub": token.user_id},
-            timedelta(minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES),
+            timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
 
-        # Update the token in the database
         token.token = new_access_token
-        token.expires_at = datetime.now(timezone.utc) + timedelta(
-            minutes=TokenService.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-        db.commit()
+        token.expires_at = datetime.now(timezone.utc) + timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES)
+        self._database.commit_and_refresh(token)
 
         return new_access_token
 
-    @staticmethod
-    def delete_expired_tokens(db: Session) -> None:
+    def delete_expired_tokens(self) -> None:
         """
         Delete all expired tokens from the database.
-
-        Args:
-            db (Session): The database session.
         """
         now = datetime.now(timezone.utc)
-        db.query(Token).filter((Token.expires_at < now) | (Token.refresh_expires_at < now)).delete()
-        db.commit()
+        expired_tokens = self._database.db.query(Token).filter(
+            (Token.expires_at < now) | (Token.refresh_expires_at < now)
+        )
+        for token in expired_tokens:
+            self._database.delete_and_commit(token)

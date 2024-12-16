@@ -1,27 +1,28 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
 from app.models.user import User
 from app.schemas.register import RegisterRequest, RegisterResponse
 from app.schemas.token import TokenResponse
 from app.utils.security_utils import hash_password, verify_password
 from app.services.token_service import TokenService
+from app.services.base_service import BaseService
+from fastapi import HTTPException, status
 
 
-class UserService:
-    @staticmethod
-    def register_user(user_data: RegisterRequest, db: Session) -> RegisterResponse:
+class UserService(BaseService):
+    def __init__(self, db):
+        super().__init__(db)
+        self.token_service = TokenService(db)
+
+    def register_user(self, user_data: RegisterRequest) -> RegisterResponse:
         """
         Register a new user and return their details along with an access token.
         """
-        # Check if the user already exists
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
+        existing_user = self._database.db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",
             )
 
-        # Create a new user
         hashed_password = hash_password(user_data.password)
         new_user = User(
             email=user_data.email,
@@ -29,18 +30,14 @@ class UserService:
             first_name=user_data.first_name,
             last_name=user_data.last_name,
         )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
 
-        # Use TokenService to create a token
-        token = TokenService.create_token(
+        new_user = self._database.add_and_commit(new_user)
+
+        token = self.token_service.create_token(
             user_id=new_user.id,
             payload={"sub": new_user.email},
-            db=db,
         )
 
-        # Return user data and token
         return RegisterResponse(
             id=new_user.id,
             email=new_user.email,
@@ -55,27 +52,22 @@ class UserService:
             ),
         )
 
-    @staticmethod
-    def login_user(email: str, password: str, db: Session) -> RegisterResponse:
+    def login_user(self, email: str, password: str) -> RegisterResponse:
         """
         Authenticate a user and return their details along with an access token.
         """
-        # Validate user credentials
-        user = db.query(User).filter(User.email == email).first()
+        user = self._database.db.query(User).filter(User.email == email).first()
         if not user or not verify_password(password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
             )
 
-        # Use TokenService to create a token
-        token = TokenService.create_token(
+        token = self.token_service.create_token(
             user_id=user.id,
             payload={"sub": user.email},
-            db=db,
         )
 
-        # Return user data and token
         return RegisterResponse(
             id=user.id,
             email=user.email,

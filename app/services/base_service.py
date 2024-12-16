@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
-from app.utils.database_utils import DatabaseUtils
+from app.utils.database_utils import DatabaseUtils as _database
 
 class BaseService:
     def __init__(self, db: Session):
-        self.database_utils = DatabaseUtils(db)
+        """
+        Initialize the service with a database session and utilities.
+        """
+        self._database = _database(db)
