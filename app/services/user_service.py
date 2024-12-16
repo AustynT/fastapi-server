@@ -16,8 +16,7 @@ class UserService(BaseService):
         """
         Register a new user and return their details along with an access token.
         """
-        existing_user = self._database.db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
+        if self._database.exists(User, email=user_data.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",
@@ -56,8 +55,8 @@ class UserService(BaseService):
         """
         Authenticate a user and return their details along with an access token.
         """
-        user = self._database.db.query(User).filter(User.email == email).first()
-        if not user or not verify_password(password, user.hashed_password):
+        user = self._database.find_or_404(User, email=email)
+        if not verify_password(password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password",
@@ -81,3 +80,23 @@ class UserService(BaseService):
                 token_type="bearer",
             ),
         )
+
+    def get_all_users(self):
+        """
+        Retrieve all users from the database.
+        """
+        return self._database.get_all(User)
+
+    def get_user_by_id(self, user_id: int) -> User:
+        """
+        Retrieve a user by their ID.
+        """
+        return self._database.get_by_id(User, user_id)
+
+    def delete_user_by_id(self, user_id: int) -> dict:
+        """
+        Delete a user by their ID.
+        """
+        user = self._database.find_or_404(User, id=user_id)
+        self._database.delete_and_commit(user)
+        return {"message": "User deleted successfully"}

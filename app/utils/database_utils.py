@@ -29,7 +29,7 @@ class DatabaseUtils:
         self.db.refresh(instance)
         return instance
 
-    def get_instance_by_id(self, model, id: int):
+    def get_by_id(self, model, id: int):
         """
         Retrieve an instance of a model by its ID.
         """
@@ -37,6 +37,55 @@ class DatabaseUtils:
         if not instance:
             raise HTTPException(status_code=404, detail=f"{model.__name__} with ID {id} not found")
         return instance
+
+    def get_by_string(self, model, field_name: str, value: str):
+        """
+        Retrieve an instance of a model by a string field.
+
+        Args:
+            model: SQLAlchemy model class.
+            field_name (str): Name of the string field to filter by.
+            value (str): Value to search for in the specified field.
+
+        Returns:
+            The retrieved instance or raises an HTTPException if not found.
+        """
+        if not hasattr(model, field_name):
+            raise HTTPException(status_code=400, detail=f"Invalid field: {field_name} for {model.__name__}")
+
+        instance = self.db.query(model).filter(getattr(model, field_name) == value).first()
+        if not instance:
+            raise HTTPException(status_code=404, detail=f"{model.__name__} with {field_name} '{value}' not found")
+        return instance
+
+    def find_or_404(self, model, **filters):
+        """
+        Retrieve an instance of a model based on filters or raise a 404 error if not found.
+
+        Args:
+            model: SQLAlchemy model class.
+            **filters: Field-value pairs to filter by.
+
+        Returns:
+            The retrieved instance if found.
+
+        Raises:
+            HTTPException: If the instance does not exist.
+        """
+        instance = self.db.query(model).filter_by(**filters).first()
+        if not instance:
+            filter_details = ", ".join(f"{key}={value}" for key, value in filters.items())
+            raise HTTPException(
+                status_code=404,
+                detail=f"{model.__name__} with {filter_details} not found"
+            )
+        return instance
+
+    def get_all(self, model):
+        """
+        Retrieve all instances of a model from the database.
+        """
+        return self.db.query(model).all()
 
     def delete_and_commit(self, instance):
         """
@@ -49,7 +98,7 @@ class DatabaseUtils:
         """
         Find a record by ID, update its attributes, and commit the changes.
         """
-        instance = self.get_instance_by_id(model, id)
+        instance = self.get_by_id(model, id)
         for key, value in updated_data.items():
             setattr(instance, key, value)
         return self.commit_and_refresh(instance)
@@ -63,7 +112,7 @@ class DatabaseUtils:
             id = update_data.pop("id", None)
             if not id:
                 raise HTTPException(status_code=400, detail="Missing ID for bulk update")
-            instance = self.get_instance_by_id(model, id)
+            instance = self.get_by_id(model, id)
             for key, value in update_data.items():
                 setattr(instance, key, value)
             updated_instances.append(self.commit_and_refresh(instance))

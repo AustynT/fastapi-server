@@ -35,7 +35,7 @@ class TokenService(BaseService):
         Validate an access token by checking its blacklist status and decoding it.
         """
         payload = validate_token(token_str)
-        token = self._database.get_instance_by_id(Token, token_str)
+        token = self._database.find_or_404(Token, token=token_str)
 
         if token.is_blacklisted:
             raise HTTPException(
@@ -48,7 +48,7 @@ class TokenService(BaseService):
         """
         Blacklist an access token, preventing further use.
         """
-        token = self._database.get_instance_by_id(Token, token_str)
+        token = self._database.find_or_404(Token, token=token_str)
         token.is_blacklisted = True
         self._database.commit_and_refresh(token)
 
@@ -56,7 +56,7 @@ class TokenService(BaseService):
         """
         Refresh an access token using a valid refresh token.
         """
-        token = self._database.get_instance_by_id(Token, refresh_token_str)
+        token = self._database.find_or_404(Token, refresh_token=refresh_token_str)
 
         if token.is_blacklisted:
             raise HTTPException(
