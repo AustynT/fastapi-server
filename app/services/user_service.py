@@ -16,7 +16,7 @@ class UserService(BaseService):
         """
         Register a new user and return their details along with an access token.
         """
-        if self._database.exists(User, email=user_data.email):
+        if self._database.find_or_404(User, email=user_data.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",

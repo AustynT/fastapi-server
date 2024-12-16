@@ -14,7 +14,8 @@ def register_user(user_data: RegisterRequest, db: Session = Depends(get_db)):
     """
     Endpoint to register a new user.
     """
-    return UserService.register_user(user_data, db)
+    user_service = UserService(db)  # Instantiate UserService
+    return user_service.register_user(user_data)
 
 
 @router.post("/login", response_model=RegisterResponse)
@@ -22,7 +23,8 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     """
     Endpoint to authenticate a user.
     """
-    return UserService.login_user(form_data.username, form_data.password, db)
+    user_service = UserService(db)  # Instantiate UserService
+    return user_service.login_user(form_data.username, form_data.password)
 
 
 @router.post("/logout")
@@ -40,16 +42,10 @@ def refresh_access_token(refresh_data: TokenRequest, db: Session = Depends(get_d
     """
     Endpoint to refresh an access token using a valid refresh token.
     """
-    try:
-        # Use the TokenService to refresh the access token
-        new_access_token = TokenService.refresh_access_token(
-            refresh_token_str=refresh_data.refresh_token,
-            db=db
-        )
-        return TokenResponse(
-            access_token=new_access_token,
-            refresh_token=refresh_data.refresh_token,  # The same refresh token is returned
-            token_type="bearer",
-        )
-    except HTTPException as e:
-        raise e
+    token_service = TokenService(db)  # Instantiate TokenService
+    new_access_token = token_service.refresh_access_token(refresh_token_str=refresh_data.refresh_token)
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=refresh_data.refresh_token,  # The same refresh token is returned
+        token_type="bearer",
+    )
