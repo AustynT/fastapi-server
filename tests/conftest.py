@@ -24,7 +24,10 @@ if not TEST_DATABASE_URL:
 
 # PostgreSQL test database engine setup
 try:
-    engine = create_engine(TEST_DATABASE_URL)
+    engine = create_engine(
+        TEST_DATABASE_URL,
+        connect_args={"options": "-c timezone=UTC"}
+    )
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 except Exception as e:
     raise RuntimeError(f"Failed to create test database engine: {e}")

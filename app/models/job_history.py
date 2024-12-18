@@ -9,7 +9,7 @@ class JobHistory(BaseModel):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    location = Column(String, nullable=False)
+    location = Column(String, nullable=False, index=True)
     description = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True, index=True)
     start_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -24,7 +24,7 @@ class JobHistory(BaseModel):
     
     @validates("end_date")
     def validate_end_date(self, key, value):
-        if value and self.start_date and value <= self.start_date:
+        if value and (self.start_date is None or value <= self.start_date):
             raise ValueError("end_date must be after start_date")
         return value
     
@@ -39,4 +39,4 @@ class JobHistory(BaseModel):
         """
         Determine if the job is still active based on end_date.
         """
-        return not self.end_date or self.end_date > datetime.now(timezone.utc)
+        return self.end_date is None or self.end_date > datetime.now(timezone.utc)
