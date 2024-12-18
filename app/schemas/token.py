@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class TokenRequest(BaseModel):
@@ -7,12 +7,13 @@ class TokenRequest(BaseModel):
     """
     refresh_token: str = Field(..., description="The refresh token used to request a new access token.")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
             }
         }
+    )
 
 
 class TokenResponse(BaseModel):
@@ -23,11 +24,12 @@ class TokenResponse(BaseModel):
     refresh_token: str = Field(..., description="The refresh token for generating new access tokens.")
     token_type: str = Field(default="bearer", description="The type of token being returned.")
 
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",
             }
         }
+    )
