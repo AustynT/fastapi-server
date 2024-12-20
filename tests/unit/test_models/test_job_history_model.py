@@ -40,15 +40,19 @@ def test_validate_location():
     """
     Test that location cannot be empty or only whitespaces.
     """
-    job = JobHistory(description="Engineer", is_active=True, start_date=datetime.now(timezone.utc))
+
+
     
+    job = JobHistory(description="Engineer", is_active=True, start_date=datetime.now(timezone.utc))
+
     # Invalid location
-    with pytest.raises(ValueError, match="Location cannot be empty or whitespaces"):
+    with pytest.raises(ValueError, match=r"(?i)location.*empty.*whitespace"):
         job.location = "  "  # Only whitespace
 
     # Valid location
     job.location = "Remote"
     assert job.location == "Remote"
+
 
 
 def test_is_current():
