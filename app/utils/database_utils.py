@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi import HTTPException
-
 
 class DatabaseUtils:
     def __init__(self, db: Session):
@@ -16,18 +16,47 @@ class DatabaseUtils:
         """
         Add an instance to the database, commit the session, and refresh the instance.
         """
-        self.db.add(instance)
-        self.db.commit()
-        self.db.refresh(instance)
-        return instance
+        try:
+            self.db.add(instance)
+            self.db.commit()
+            self.db.refresh(instance)
+            return instance
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise e
+
+    def add_all_and_commit(self, instances):
+        """
+        Add multiple instances to the database and commit.
+        """
+        try:
+            self.db.add_all(instances)
+            self.db.commit()
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise e
+
+    def bulk_add(self, instances):
+        """
+        Add multiple instances to the database without committing.
+        """
+        try:
+            self.db.add_all(instances)
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise e
 
     def commit_and_refresh(self, instance):
         """
         Commit the current transaction and refresh the given instance.
         """
-        self.db.commit()
-        self.db.refresh(instance)
-        return instance
+        try:
+            self.db.commit()
+            self.db.refresh(instance)
+            return instance
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise e
 
     def get_by_id(self, model, id: int):
         """
@@ -91,8 +120,12 @@ class DatabaseUtils:
         """
         Delete an instance from the database and commit the session.
         """
-        self.db.delete(instance)
-        self.db.commit()
+        try:
+            self.db.delete(instance)
+            self.db.commit()
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise e
 
     def find_and_update(self, model, id: int, updated_data: dict):
         """
