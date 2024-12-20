@@ -26,7 +26,7 @@ class JobHistoryService(BaseService):
         """
         job_history = self._database.get_by_id(JobHistory, job_history_id)
 
-        for key, value in job_data.dict(exclude_unset=True).items():
+        for key, value in job_data.model_dump(exclude_unset=True).items():
             setattr(job_history, key, value)
 
         return self._database.commit_and_refresh(job_history)
