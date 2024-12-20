@@ -20,6 +20,13 @@ class RolePermissionService(BaseService):
             raise HTTPException(status_code=404, detail="Role-Permission association not found")
         return role_permission
 
+    def get_permissions_for_role(self, role_id: int):
+        """
+        Retrieve all permissions associated with a specific role.
+        """
+        role_permissions = self._database.get_all(RolePermission)
+        return [rp.permission for rp in role_permissions if rp.role_id == role_id]
+
     def create_role_permission(self, role_permission_data: RolePermissionCreate):
         """
         Create a new role-permission association and save it to the database.
