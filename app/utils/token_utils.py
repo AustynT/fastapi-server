@@ -10,7 +10,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
 
     Args:
         data (dict): Payload to include in the token (e.g., user information).
-        expires_delta (timedelta, optional): Expiration time for the token. Defaults to the config value.
+        expires_delta (timedelta, optional): Expiration time for the token. 
+            Defaults to the config value (ACCESS_TOKEN_EXPIRE_MINUTES).
 
     Returns:
         str: Encoded JWT token.
@@ -39,7 +40,10 @@ def decode_access_token(token: str) -> dict:
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.ALGORITHM])
         return payload
     except JWTError as e:
-        raise HTTPException(status_code=401, detail="Invalid or expired token") from e
+        raise HTTPException(
+            status_code=401, 
+            detail="Invalid token or decoding error"
+        ) from e
 
 
 def validate_token(token: str) -> dict:
@@ -58,9 +62,22 @@ def validate_token(token: str) -> dict:
     payload = decode_access_token(token)
 
     # Check the expiration timestamp
+    if not is_token_expired(payload):
+        return payload
+    raise HTTPException(status_code=401, detail="Token has expired")
+
+
+def is_token_expired(payload: dict) -> bool:
+    """
+    Check if the token is expired based on the 'exp' field.
+
+    Args:
+        payload (dict): Decoded JWT payload.
+
+    Returns:
+        bool: True if the token has expired, False otherwise.
+    """
     if "exp" in payload:
         exp = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
-        if datetime.now(timezone.utc) > exp:
-            raise HTTPException(status_code=401, detail="Token has expired")
-
-    return payload
+        return datetime.now(timezone.utc) > exp
+    return False

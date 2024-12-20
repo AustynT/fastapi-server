@@ -1,65 +1,69 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
-from app.models.base_model import BaseModel
 from sqlalchemy.orm import relationship, validates
+from app.models.base_model import BaseModel
 
+# Constants for column lengths
+MAX_LOCATION_LENGTH = 255
+MAX_DESCRIPTION_LENGTH = 1000
 
 class JobHistory(BaseModel):
     """
-    Represents the job history of a user.
+    Represents the job history of a user, including details like location,
+    description, and job duration.
     """
     __tablename__ = "job_histories"
 
     id = Column(
-        Integer, 
-        primary_key=True, 
+        Integer,
+        primary_key=True,
         index=True,
         doc="Primary key identifier for the job history."
     )
 
     user_id = Column(
-        Integer, 
-        ForeignKey("users.id"), 
+        Integer,
+        ForeignKey("users.id"),
         index=True,
         doc="Foreign key referencing the user associated with this job history."
     )
 
     location = Column(
-        String, 
-        nullable=False, 
+        String(MAX_LOCATION_LENGTH),
+        nullable=False,
         index=True,
-        doc="The location of the job. Cannot be empty or whitespace."
+        doc=f"The location of the job (max {MAX_LOCATION_LENGTH} characters). Cannot be empty or whitespace."
     )
 
     description = Column(
-        String, 
+        String(MAX_DESCRIPTION_LENGTH),
         nullable=False,
-        doc="A description of the job."
+        doc=f"A description of the job (max {MAX_DESCRIPTION_LENGTH} characters)."
     )
 
     is_active = Column(
-        Boolean, 
-        nullable=False, 
-        default=True, 
+        Boolean,
+        nullable=False,
+        default=True,
         index=True,
         doc="Indicates whether the job is currently active."
     )
 
     start_date = Column(
-        DateTime, 
-        default=lambda: datetime.now(timezone.utc), 
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
         doc="The start date of the job. Defaults to the current UTC time."
     )
 
     end_date = Column(
-        DateTime, 
+        DateTime,
         nullable=True,
         doc="The end date of the job. Nullable for active jobs."
     )
 
     user = relationship(
-        "User", 
+        "User",
         back_populates="job_histories",
         doc="Relationship to the User model. Links to the user's job histories."
     )
@@ -85,10 +89,23 @@ class JobHistory(BaseModel):
     @validates("location")
     def validate_location(self, key, value):
         """
-        Ensure that the location field is not empty or only whitespace.
+        Ensure that the location field is not empty, only whitespace, or too long.
         """
         if not value.strip():
             raise ValueError("Location cannot be empty or whitespace")
+        if len(value) > MAX_LOCATION_LENGTH:
+            raise ValueError(f"Location cannot exceed {MAX_LOCATION_LENGTH} characters")
+        return value
+
+    @validates("description")
+    def validate_description(self, key, value):
+        """
+        Ensure the description is not empty or excessively long.
+        """
+        if not value.strip():
+            raise ValueError("Description cannot be empty or whitespace")
+        if len(value) > MAX_DESCRIPTION_LENGTH:
+            raise ValueError(f"Description cannot exceed {MAX_DESCRIPTION_LENGTH} characters")
         return value
 
     @property
@@ -100,3 +117,10 @@ class JobHistory(BaseModel):
             bool: True if the job is active, False otherwise.
         """
         return self.end_date is None or self.end_date > datetime.now(timezone.utc)
+
+    def deactivate(self):
+        """
+        Set the job to inactive and update the end_date to now.
+        """
+        self.is_active = False
+        self.end_date = datetime.now(timezone.utc)

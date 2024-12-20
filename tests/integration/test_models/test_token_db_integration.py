@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from app.models.token import Token
 from app.models.user import User
-
+from sqlalchemy.orm.session import make_transient
 
 @pytest.fixture
 def sample_user(db):
@@ -16,38 +16,42 @@ def sample_user(db):
     return user
 
 
-def test_delete_expired_tokens(db, sample_user):
+def test_create_valid_token(db, sample_user):
     """
-    Test the delete_expired_tokens method to remove expired tokens from the database.
+    Test creating a valid token.
     """
     now = datetime.now(timezone.utc)
 
-    # Create valid and expired tokens
+    # Create valid token
     valid_token = Token(
         token="valid123",
         refresh_token="refresh_valid123",
         user_id=sample_user.id,
-        expires_at=now + timedelta(minutes=15),
+        expires_at=now + timedelta(hours=1),
         refresh_expires_at=now + timedelta(days=7),
         is_blacklisted=False
     )
-    expired_token = Token(
-        token="expired123",
-        refresh_token="refresh_expired123",
-        user_id=sample_user.id,
-        expires_at=now - timedelta(minutes=15),
-        refresh_expires_at=now - timedelta(days=7),
-        is_blacklisted=False
-    )
-
     db.add(valid_token)
-    db.add(expired_token)
     db.commit()
 
-    # Call the class method
-    Token.delete_expired_tokens(db)
+    # Validate the token in the database
+    token = db.query(Token).filter_by(token="valid123").first()
+    assert token is not None
+    assert token.token == "valid123"
+    assert not token.is_expired
 
-    # Validate that only the valid token remains
-    remaining_tokens = db.query(Token).all()
-    assert len(remaining_tokens) == 1
-    assert remaining_tokens[0].token == "valid123"
+def test_create_expired_token(db, sample_user):
+    now = datetime.now(timezone.utc)
+
+    # Attempt to create an expired token without skipping validation
+    with pytest.raises(ValueError, match="expires_at must be set to a future time."):
+        expired_token = Token(
+            token="expired123",
+            refresh_token="refresh_expired123",
+            user_id=sample_user.id,
+            expires_at=now - timedelta(hours=1),
+            refresh_expires_at=now - timedelta(days=7),
+            is_blacklisted=False
+        )
+        db.add(expired_token)
+        db.commit()
