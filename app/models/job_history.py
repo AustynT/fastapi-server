@@ -11,6 +11,16 @@ class JobHistory(BaseModel):
     """
     Represents the job history of a user, including details like location,
     description, and job duration.
+
+    Attributes:
+        id (int): Primary key identifier for the job history.
+        user_id (int): Foreign key referencing the user associated with this job history.
+        location (str): The location of the job (max 255 characters).
+        description (str): A description of the job (max 1000 characters).
+        is_active (bool): Indicates whether the job is currently active.
+        start_date (datetime): The start date of the job. Defaults to the current UTC time.
+        end_date (datetime): The end date of the job. Nullable for active jobs.
+        user (User): Relationship to the User model, linking to the user's job histories.
     """
     __tablename__ = "job_histories"
 
