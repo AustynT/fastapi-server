@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.orm import validates
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship, validates
 from app.models.base_model import BaseModel
 
 class Service(BaseModel):
@@ -9,7 +9,7 @@ class Service(BaseModel):
     Attributes:
         service_id (int): Primary key identifier for the service.
         service_name (str): The unique name of the service.
-        total_amount (float): The total amount or cost of the service.
+        description (str): A brief description of the service.
     """
 
     __tablename__ = "services"
@@ -26,11 +26,23 @@ class Service(BaseModel):
         nullable=False,
         doc="The unique name of the service. Cannot be null."
     )
-    total_amount = Column(
-        Float,
-        nullable=False,
-        doc="The total amount or cost of the service. Cannot be null."
+    description = Column(
+        String,
+        nullable=True,
+        doc="A brief description of the service."
     )
+
+    products_included = relationship(
+        "ProductService",
+        back_populates="service",
+        doc="Relationship to ProductService for products included in this service."
+    )
+    services_included = relationship(
+        "ServiceProduct",
+        back_populates="service",
+        doc="Relationship to ServiceProduct for services included in products."
+    )
+
 
     @validates("service_name")
     def validate_service_name(self, key, value):
@@ -52,22 +64,3 @@ class Service(BaseModel):
         if len(value) < 3:
             raise ValueError("Service name must be at least 3 characters long.")
         return value.strip()
-
-    @validates("total_amount")
-    def validate_total_amount(self, key, value):
-        """
-        Validate the total amount to ensure it is a positive number.
-
-        Args:
-            key (str): The field being validated.
-            value (float): The value to validate.
-
-        Returns:
-            float: The validated total amount.
-
-        Raises:
-            ValueError: If the total amount is not positive.
-        """
-        if value is None or value <= 0:
-            raise ValueError("Total amount must be a positive number.")
-        return value
