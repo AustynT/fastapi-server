@@ -12,6 +12,7 @@ class User(BaseModel):
     """
     __tablename__ = "users"
 
+    # Columns
     id = Column(
         Integer,
         primary_key=True,
@@ -53,16 +54,11 @@ class User(BaseModel):
         doc="Indicates whether the user's account is active. Defaults to False."
     )
 
+    # Relationships
     tokens = relationship(
         "Token",
         back_populates="user",
         doc="Relationship to the Token model, representing the user's tokens."
-    )
-
-    role_permissions = relationship(
-        "RolePermission",
-        back_populates="user",
-        doc="Relationship to the RolePermission model, representing the user's permissions."
     )
 
     job_histories = relationship(
@@ -71,6 +67,14 @@ class User(BaseModel):
         doc="Relationship to the JobHistory model, representing the user's job history."
     )
 
+    user_role = relationship(
+        "UserRole",
+        uselist=False,
+        back_populates="user",
+        doc="One-to-one relationship to the UserRole model."
+    )
+
+    # Methods
     def activate(self):
         """
         Activate the user's account by setting is_active to True.
@@ -93,6 +97,35 @@ class User(BaseModel):
         """
         return f"{self.first_name} {self.last_name}"
 
+    def has_role(self, role_name: str) -> bool:
+        """
+        Check if the user has a specific role.
+
+        Args:
+            role_name (str): The name of the role to check.
+
+        Returns:
+            bool: True if the user has the role, False otherwise.
+        """
+        return any(ur.role.name == role_name for ur in self.user_roles)
+
+    def has_permission(self, permission_name: str) -> bool:
+        """
+        Check if the user has a specific permission via roles.
+
+        Args:
+            permission_name (str): The name of the permission to check.
+
+        Returns:
+            bool: True if the user has the permission, False otherwise.
+        """
+        for user_role in self.user_roles:
+            for role_permission in user_role.role.role_permissions:
+                if role_permission.permission.name == permission_name:
+                    return True
+        return False
+
+    # Validation Methods
     @validates("email")
     def validate_email(self, key, value):
         """
@@ -106,7 +139,6 @@ class User(BaseModel):
         if "@" not in value or "." not in value:
             raise ValueError("Email must be a valid email address.")
         return value
-    
 
     @validates("first_name", "last_name")
     def validate_name(self, key, value):
@@ -139,7 +171,3 @@ class User(BaseModel):
         if not isinstance(value, bool):
             raise ValueError("is_active must be a Boolean value.")
         return value
-
-
-"""     services = relationship("Service", back_populates="user")
-    prodocts = relationship("Product", back_populates="product") """
