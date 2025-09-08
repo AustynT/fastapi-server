@@ -6,7 +6,7 @@ from app.db.database import Base
 
 class BaseModel(Base):
     __abstract__ = True  # Ensure this doesn't create a table
-
+    ## hello this is a comment
     @declared_attr
     def created_at(cls):
         """
